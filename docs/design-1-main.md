@@ -114,6 +114,17 @@ functions/
 
 ## Error Handling Strategy
 
+### Passthrough and Log
+The general principle is if there's an error, pass through back as a response AND as a log the error.
+
+The code we write, if receiving an error from another service or third-party operation, should just pass that back in the final response and log.
+
+For example, if uploading the binary to firebase store has an error from the firebase service, log:
+
+- status code
+- message
+- function (`store-in-firebase`).
+- 
 ### Authentication Errors
 - **401:** Invalid/missing bearer token
 - **Log:** `authentication_failure` with compaction_id
@@ -131,6 +142,15 @@ functions/
 ### Storage Errors
 - **500:** Upload failures
 - **Log:** `store-in-firebase` with error details
+
+## statusEnum Update in the CompactionDoc
+Show the `compactionDoc.statusEnum` that changes at each key phase (function):
+
+- tts-request: `start-tts`
+- upload: `start-upload`
+- update Compaction with `publicUrl` successful: `audioUrlDone`
+- Any error, update `error`: error message
+- `status_code`: error status code
 
 ## Logging Schema
 
@@ -163,6 +183,10 @@ functions/
 
 ## Configuration
 
+### Google Secrets Management
+- projects/648979367518/secrets/firebase-service-account
+- projects/648979367518/secrets/cartesia_api_key
+  
 ### Firebase Secrets
 ```bash
 firebase functions:secrets:set CARTESIA_API_KEY
