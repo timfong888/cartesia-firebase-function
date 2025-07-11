@@ -26,13 +26,14 @@ Cost-effective, minimal, resilient Firebase Cloud Function that converts text to
 ```json
 {
   "compaction_id": "string",
-  "authentication_token": "string"
+  "user_id": "string"
 }
 ```
+headers have bearer token. thsi is checked for aithentication. 
 
 ### Authentication
 - Validate authentication token from request header
-- Extract user_id from validated token
+- Extract user_id from validated token (how is this done?)
 - Log authentication success/failure with user_id and compaction_id
 
 ### Data Flow
