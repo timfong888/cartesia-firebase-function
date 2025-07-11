@@ -5,7 +5,11 @@
 **GitHub Issue:** [#1](https://github.com/timfong888/cartesia-firebase-function/issues/1)
 
 ## Overview
-Build Firebase Cloud Function for Cartesia TTS integration with Firestore and Storage. Function processes text-to-speech requests, stores audio files, and updates compaction records.
+Build Firebase Cloud Function for Cartesia TTS integration with Firestore and Storage. 
+
+Function processes text-to-speech requests, stores audio files, and updates compaction records.
+
+Before full code, write pseudo-code as comments and key code scaffolding, like function calls, to simplify structure.
 
 Set [x] each task that is completed. 
 
