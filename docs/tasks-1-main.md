@@ -7,6 +7,8 @@
 ## Overview
 Build Firebase Cloud Function for Cartesia TTS integration with Firestore and Storage. Function processes text-to-speech requests, stores audio files, and updates compaction records.
 
+Set [x] each task that is completed. 
+
 ## Tasks
 
 ### Setup
