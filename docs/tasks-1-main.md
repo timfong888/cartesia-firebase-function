@@ -9,6 +9,10 @@ Build Firebase Cloud Function for Cartesia TTS integration with Firestore and St
 
 Set [x] each task that is completed. 
 
+Create a section of information you want from the User (e.g. api keys, external target URLs). If secrets, prompt the User via Chat but NEVER commit to the public repo in a document or comment.  If okay in a public repo, ask and include for future reference.
+
+If you need a certain environment, such as tools installed to do the work, check (e.g. npm list). If not listed, include an environment set-up section to sudo npm install your package.
+
 ## Tasks
 
 ### Setup
