@@ -9,7 +9,7 @@
 
 **Hypothesized Answer:** You want the Cartesia API key stored in Firebase Functions secrets using `firebase functions:secrets:set CARTESIA_API_KEY`
 
-**Answer:** (to be filled by User)
+**Answer:** yes but the docs need to tell me how to so this.
 
 ---
 
@@ -17,7 +17,7 @@
 
 **Hypothesized Answer:** Firebase Auth token validation using Firebase Admin SDK
 
-**Answer:** (to be filled by User)
+**Answer:** i dont understsnd how this works. isnthisnjust a brarer token?
 
 ---
 
@@ -25,7 +25,7 @@
 
 **Hypothesized Answer:** Organize by user_id/compaction_id for easy access: `audio/{user_id}/{compaction_id}.mp3`
 
-**Answer:** (to be filled by User)
+**Answer:** it shouod just be a single bucket thst can br at the root. 
 
 ---
 
@@ -33,7 +33,7 @@
 
 **Hypothesized Answer:** 3 retries with exponential backoff (1s, 2s, 4s) using a retry package like `async-retry`
 
-**Answer:** (to be filled by User)
+**Answer:** i came across p-retry. backupnis exponentia but the times to make a tts that is 2 minites long is probably 1 minit. 
 
 ---
 
@@ -41,7 +41,7 @@
 
 **Hypothesized Answer:** Publicly readable URLs for easy access in client applications, but with obscure file paths for security through obscurity
 
-**Answer:** (to be filled by User)
+**Answer:** the audio url should be the video_id when we generste these from youtube. 
 
 ---
 
@@ -49,7 +49,7 @@
 
 **Hypothesized Answer:** Return 404 error since compaction_id should already exist before TTS processing
 
-**Answer:** (to be filled by User)
+**Answer:** yes return 404 and log "compaction_not_found" compaction_id. 
 
 ---
 
@@ -57,7 +57,7 @@
 
 **Hypothesized Answer:** No rate limiting initially, but add monitoring for cost tracking
 
-**Answer:** (to be filled by User)
+**Answer:** agree with your answer. 
 
 ---
 
@@ -65,4 +65,4 @@
 
 **Hypothesized Answer:** Node.js 18 with Firebase Functions v2 for better performance and modern features
 
-**Answer:** (to be filled by User)
+**Answer:** i believe gen2 functions is on 22. 
