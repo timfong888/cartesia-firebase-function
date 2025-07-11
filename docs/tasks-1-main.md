@@ -17,6 +17,12 @@ Create a section of information you want from the User (e.g. api keys, external 
 
 If you need a certain environment, such as tools installed to do the work, check (e.g. npm list). If not listed, include an environment set-up section to sudo npm install your package.
 
+## GitHub Repo and Issue
+1. As each major phase is done, update in the GitHub Issue Comments
+2. Code should be committed and pushed to the Repo so the User can review the code while you are in process
+3. Indicate the commits for each Update in GitHub Issue Comments to make it easier to track
+
+
 ## Tasks
 
 ### Setup
