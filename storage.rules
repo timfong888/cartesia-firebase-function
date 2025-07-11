@@ -1,0 +1,22 @@
+rules_version = '2';
+
+// Firebase Storage Security Rules for Cartesia TTS Audio Files
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow public read access to audio files
+    // Files are named with video_id.mp3 format
+    match /{videoId}.mp3 {
+      // Allow public read access for audio files
+      allow read: if true;
+      
+      // Only allow write access from Cloud Functions
+      // (Functions run with admin privileges)
+      allow write: if false;
+    }
+    
+    // Deny access to all other files
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
