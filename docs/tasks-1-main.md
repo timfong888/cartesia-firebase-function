@@ -15,7 +15,7 @@ Set [x] each task that is completed.
 - [ ] Initialize Firebase project structure
 - [ ] Configure Firebase Functions with Node.js 22
 - [ ] Set up project dependencies (firebase-admin, p-retry, etc.)
-- [ ] Configure Firebase secrets for Cartesia API key
+- [ ] Configure Firebase secrets for Cartesia API key (User will provide in chat. Ask if not).
 
 ### Core Implementation
 - [ ] Create main function entry point (`src/index.js`)
