@@ -6,11 +6,7 @@
  */
 
 const axios = require('axios');
-const { defineSecret } = require('firebase-functions/params');
 const { logger } = require('../utils/logger');
-
-// Define secret for Cartesia API key
-const cartesiaApiKey = defineSecret('CARTESIA_API_KEY');
 
 /**
  * Generates TTS audio using Cartesia API
@@ -105,8 +101,14 @@ async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId,
       language: 'en'
     };
 
-    // Debug API key format
-    const apiKey = cartesiaApiKey.value();
+    // Get API key from environment (correct secret name)
+    const rawApiKey = process.env.cartesia_api_key;
+    const apiKey = rawApiKey ? rawApiKey.trim() : null;
+
+    if (!apiKey) {
+      throw new Error('cartesia_api_key environment variable not set');
+    }
+
     logger.info('cartesia_request_start', {
       compactionId,
       userId,
@@ -118,8 +120,11 @@ async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId,
         outputFormat: requestPayload.output_format
       },
       apiKeyLength: apiKey.length,
+      rawApiKeyLength: rawApiKey.length,
       apiKeyPrefix: apiKey.substring(0, 10),
-      apiKeyHasInvalidChars: /[^\x20-\x7E]/.test(apiKey) // Check for non-printable chars
+      apiKeyHasInvalidChars: /[^\x20-\x7E]/.test(apiKey),
+      rawApiKeyHasInvalidChars: /[^\x20-\x7E]/.test(rawApiKey),
+      apiKeyCharCodes: Array.from(rawApiKey).slice(0, 20).map(c => c.charCodeAt(0))
     });
 
     const response = await axios({
@@ -127,7 +132,7 @@ async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId,
       url: 'https://api.cartesia.ai/tts/bytes',
       headers: {
         'Cartesia-Version': '2025-04-16',
-        'Authorization': `Bearer ${cartesiaApiKey.value()}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
         'User-Agent': 'Firebase-Function/1.0'
       },

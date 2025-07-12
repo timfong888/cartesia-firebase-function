@@ -103,7 +103,7 @@ This function integrates with the [Cartesia TTS Bytes API](https://docs.cartesia
 
 **Required Headers:**
 - `Cartesia-Version: 2025-04-16`
-- `Authorization: Bearer CARTESIA_API_KEY`
+- `Authorization: Bearer cartesia_api_key`
 - `Content-Type: application/json`
 
 For complete API documentation, see: https://docs.cartesia.ai/api-reference/tts/bytes
@@ -141,7 +141,7 @@ Tokens should be in the format `user_{userId}_{randomString}` for proper user ID
 4. **Configure Firebase secrets:**
    ```bash
    # Set Cartesia API key
-   firebase functions:secrets:set CARTESIA_API_KEY
+   firebase functions:secrets:set cartesia_api_key
 
    # Set authentication tokens (comma-separated)
    firebase functions:secrets:set AUTH_TOKENS
@@ -184,7 +184,7 @@ npm run deploy
 
 ### Firebase Secrets
 
-- `CARTESIA_API_KEY` - Cartesia API key for TTS generation
+- `cartesia_api_key` - Cartesia API key for TTS generation
 - `AUTH_TOKENS` - Comma-separated list of valid bearer tokens (e.g., "user_123_token1,user_456_token2")
 
 ### Firebase Services
@@ -232,7 +232,7 @@ firebase functions:secrets:set AUTH_TOKENS
 # Enter: user_123_mytoken1,user_456_mytoken2
 
 # Configure Cartesia API key
-firebase functions:secrets:set CARTESIA_API_KEY
+firebase functions:secrets:set cartesia_api_key
 # Enter: sk_car_your_api_key_here
 ```
 
