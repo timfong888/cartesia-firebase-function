@@ -6,7 +6,6 @@
  */
 
 const axios = require('axios');
-const { logger } = require('../utils/logger');
 
 /**
  * Generates TTS audio using Cartesia API
@@ -19,57 +18,27 @@ const { logger } = require('../utils/logger');
  * @returns {Promise<Buffer>} - Audio buffer
  */
 async function generateTTS({ transcript, voiceId, compactionId, userId, apiKey }) {
-  const requestId = generateRequestId();
-  
-  logger.info('cartesia_tts_start', {
-    compactionId,
-    userId,
-    requestId,
-    textLength: transcript.length,
-    voiceId
-  });
-
   try {
     // Dynamic import for p-retry ES module
     const { default: pRetry } = await import('p-retry');
 
     const audioBuffer = await pRetry(
-      () => makeCartesiaRequest(transcript, voiceId, requestId, compactionId, userId, apiKey),
+      () => makeCartesiaRequest(transcript, voiceId, compactionId, userId, apiKey),
       {
         retries: 3,
         factor: 2,
         minTimeout: 1000,
         maxTimeout: 60000,
         onFailedAttempt: (error) => {
-          logger.warn('cartesia_retry_attempt', {
-            compactionId,
-            userId,
-            requestId,
-            attempt: error.attemptNumber,
-            retriesLeft: error.retriesLeft,
-            error: error.message
-          });
+          console.warn(`Cartesia retry attempt ${error.attemptNumber} for ${compactionId}: ${error.message}`);
         }
       }
     );
 
-    logger.info('cartesia_tts_success', {
-      compactionId,
-      userId,
-      requestId,
-      audioSize: audioBuffer.length
-    });
-
     return audioBuffer;
 
   } catch (error) {
-    logger.error('cartesia_tts_failure', {
-      compactionId,
-      userId,
-      requestId,
-      error: error.message,
-      stack: error.stack
-    });
+    console.error(`Cartesia TTS failed for ${compactionId}:`, error.message);
     throw error;
   }
 }
@@ -78,14 +47,12 @@ async function generateTTS({ transcript, voiceId, compactionId, userId, apiKey }
  * Makes the actual request to Cartesia API
  * @param {string} transcript - Text to convert
  * @param {string} voiceId - Voice ID
- * @param {string} requestId - Request ID for tracking
  * @param {string} compactionId - Compaction ID for logging
  * @param {string} userId - User ID for logging
  * @param {string} apiKey - Cartesia API key
  * @returns {Promise<Buffer>} - Audio buffer
  */
-async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId, userId, apiKey) {
-  const startTime = Date.now();
+async function makeCartesiaRequest(transcript, voiceId, compactionId, userId, apiKey) {
   
   try {
     const requestPayload = {
@@ -108,51 +75,20 @@ async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId,
       throw new Error('Cartesia API key not provided');
     }
 
-    logger.info('cartesia_request_start', {
-      compactionId,
-      userId,
-      requestId,
-      payload: {
-        model_id: requestPayload.model_id,
-        textLength: transcript.length,
-        voiceId: voiceId,
-        outputFormat: requestPayload.output_format
-      },
-      apiKeyLength: apiKey.length,
-      rawApiKeyLength: rawApiKey.length,
-      apiKeyPrefix: apiKey.substring(0, 10),
-      apiKeyHasInvalidChars: /[^\x20-\x7E]/.test(apiKey),
-      rawApiKeyHasInvalidChars: /[^\x20-\x7E]/.test(rawApiKey),
-      apiKeyCharCodes: Array.from(rawApiKey).slice(0, 20).map(c => c.charCodeAt(0))
-    });
-
     const response = await axios({
       method: 'POST',
       url: 'https://api.cartesia.ai/tts/bytes',
       headers: {
         'Cartesia-Version': '2025-04-16',
         'Authorization': `Bearer ${apiKey.trim()}`,
-        'Content-Type': 'application/json',
-        'User-Agent': 'Firebase-Function/1.0'
+        'Content-Type': 'application/json'
       },
       data: requestPayload,
       responseType: 'arraybuffer',
-      timeout: 30000 // 30 second timeout
+      timeout: 30000
     });
 
-    const responseTime = Date.now() - startTime;
-    const cartesiaRequestId = response.headers['x-request-id'];
     const audioBuffer = Buffer.from(response.data);
-
-    logger.info('cartesia_request_success', {
-      compactionId,
-      userId,
-      requestId,
-      cartesiaRequestId,
-      statusCode: response.status,
-      audioSize: audioBuffer.length,
-      responseTime
-    });
 
     // Validate response
     if (!audioBuffer || audioBuffer.length === 0) {
@@ -162,25 +98,8 @@ async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId,
     return audioBuffer;
 
   } catch (error) {
-    const responseTime = Date.now() - startTime;
-    
     if (error.response) {
-      // HTTP error response
       const statusCode = error.response.status;
-      const cartesiaRequestId = error.response.headers['x-request-id'];
-      
-      logger.error('cartesia_request_http_error', {
-        compactionId,
-        userId,
-        requestId,
-        cartesiaRequestId,
-        statusCode,
-        responseTime,
-        error: error.message,
-        responseData: error.response.data ? error.response.data.toString() : null
-      });
-
-      // Create more specific error for different status codes
       if (statusCode === 401) {
         throw new Error('Cartesia API authentication failed');
       } else if (statusCode === 429) {
@@ -188,40 +107,17 @@ async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId,
       } else if (statusCode >= 500) {
         throw new Error(`Cartesia API server error: ${statusCode}`);
       } else {
-        throw new Error(`Cartesia API error: ${statusCode} - ${error.message}`);
+        throw new Error(`Cartesia API error: ${statusCode}`);
       }
     } else if (error.code === 'ECONNABORTED') {
-      // Timeout error
-      logger.error('cartesia_request_timeout', {
-        compactionId,
-        userId,
-        requestId,
-        responseTime,
-        timeout: 30000
-      });
       throw new Error('Cartesia API request timeout');
     } else {
-      // Network or other error
-      logger.error('cartesia_request_network_error', {
-        compactionId,
-        userId,
-        requestId,
-        responseTime,
-        error: error.message,
-        code: error.code
-      });
       throw new Error(`Cartesia API network error: ${error.message}`);
     }
   }
 }
 
-/**
- * Generates a unique request ID for tracking
- * @returns {string} - Unique request ID
- */
-function generateRequestId() {
-  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-}
+
 
 module.exports = {
   generateTTS

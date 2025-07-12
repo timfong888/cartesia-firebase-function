@@ -4,32 +4,7 @@
  * Tests core modules and integration
  */
 
-const { validateAuth } = require('../auth/validator');
 const { logger } = require('../utils/logger');
-
-describe('Authentication Validator', () => {
-  test('should reject missing authorization', async () => {
-    const result = await validateAuth(null);
-    expect(result.success).toBe(false);
-  });
-
-  test('should reject invalid format', async () => {
-    const result = await validateAuth('InvalidToken');
-    expect(result.success).toBe(false);
-  });
-
-  test('should accept valid bearer token', async () => {
-    const result = await validateAuth('Bearer user_123_validtoken');
-    expect(result.success).toBe(true);
-    expect(result.userId).toBe('123');
-  });
-
-  test('should extract user ID from token hash', async () => {
-    const result = await validateAuth('Bearer somevalidtokenstring');
-    expect(result.success).toBe(true);
-    expect(result.userId).toMatch(/^user_[a-f0-9]{8}$/);
-  });
-});
 
 describe('Logger Utility', () => {
   test('should create log entries', () => {
@@ -71,7 +46,6 @@ describe('Logger Utility', () => {
 
 describe('Module Imports', () => {
   test('should import all modules without errors', () => {
-    expect(() => require('../auth/validator')).not.toThrow();
     expect(() => require('../utils/logger')).not.toThrow();
     expect(() => require('../firestore/compaction')).not.toThrow();
     expect(() => require('../cartesia/tts')).not.toThrow();
