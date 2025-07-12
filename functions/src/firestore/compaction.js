@@ -63,7 +63,9 @@ async function updateCompactionDoc(compactionId, updateData) {
       updated_at: new Date().toISOString()
     };
 
+    console.log(`Updating Firestore doc ${compactionId} with:`, Object.keys(updatePayload));
     await docRef.update(updatePayload);
+    console.log(`Firestore update successful for ${compactionId}`);
 
   } catch (error) {
     console.error(`Firestore update error for ${compactionId}:`, error.message);

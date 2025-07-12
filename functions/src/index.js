@@ -104,8 +104,11 @@ exports.cartesiaTTS = onRequest(
     console.log(`Audio uploaded successfully: ${publicUrl}`);
 
     // Step 7: Update compaction document
-    console.log(`Updating compaction document with audio URL`);
-    await updateCompactionDoc(compactionId, { audio_url: publicUrl });
+    console.log(`Updating compaction document with audio URL and status`);
+    await updateCompactionDoc(compactionId, {
+      audio_url: publicUrl,
+      enumStatus: 'completed'
+    });
 
     // Step 8: Return success response
     console.log(`Request completed successfully for ${compactionId}`);
