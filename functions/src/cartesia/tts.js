@@ -112,18 +112,8 @@ async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId,
       compactionId,
       userId,
       requestId,
-      payload: {
-        model_id: requestPayload.model_id,
-        textLength: transcript.length,
-        voiceId: voiceId,
-        outputFormat: requestPayload.output_format
-      },
-      apiKeyLength: apiKey.length,
-      rawApiKeyLength: rawApiKey.length,
-      apiKeyPrefix: apiKey.substring(0, 10),
-      apiKeyHasInvalidChars: /[^\x20-\x7E]/.test(apiKey),
-      rawApiKeyHasInvalidChars: /[^\x20-\x7E]/.test(rawApiKey),
-      apiKeyCharCodes: Array.from(rawApiKey).slice(0, 20).map(c => c.charCodeAt(0))
+      textLength: transcript.length,
+      voiceId: voiceId
     });
 
     const response = await axios({
