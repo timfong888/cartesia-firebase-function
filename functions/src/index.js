@@ -7,13 +7,17 @@
 
 const { onRequest } = require('firebase-functions/v2/https');
 const { setGlobalOptions } = require('firebase-functions/v2');
+const { defineSecret } = require('firebase-functions/params');
 
 // Import modules
-const { validateAuth } = require('./auth/validator');
 const { getCompactionDoc, updateCompactionDoc } = require('./firestore/compaction');
 const { generateTTS } = require('./cartesia/tts');
 const { uploadAudio } = require('./storage/uploader');
 const { logger } = require('./utils/logger');
+
+// Define secrets
+const authToken = defineSecret('AUTH_TOKEN');
+const cartesiaApiKey = defineSecret('cartesia_api_key');
 
 // Configure global options for Node.js 22
 setGlobalOptions({
@@ -28,7 +32,7 @@ setGlobalOptions({
  * Processes TTS requests and updates compaction documents
  */
 exports.cartesiaTTS = onRequest(
-  { secrets: ['AUTH_TOKEN', 'cartesia_api_key'] },
+  { secrets: [authToken, cartesiaApiKey] },
   async (req, res) => {
   const startTime = Date.now();
   let compactionId, userId;
@@ -52,24 +56,25 @@ exports.cartesiaTTS = onRequest(
     // Step 3: Authenticate request (from Authorization header)
     const authorization = req.get('Authorization');
 
-    // Enhanced logging for debugging
-    logger.info('request_headers_debug', {
-      compactionId,
-      authorization: authorization ? authorization.substring(0, 20) + '...' : 'null',
-      authorizationLength: authorization ? authorization.length : 0,
-      allHeaders: Object.keys(req.headers),
-      userAgent: req.get('User-Agent'),
-      method: req.method,
-      timestamp: new Date().toISOString()
-    });
-
-    const authResult = await validateAuth(authorization);
-    if (!authResult.success) {
-      logger.error('authentication_failure', { compactionId });
+    if (!authorization || !authorization.startsWith('Bearer ')) {
+      logger.warn('auth_missing_or_invalid_format', { authorization: authorization ? authorization.substring(0, 20) + '...' : 'null' });
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    
-    userId = authResult.userId;
+
+    const token = authorization.substring(7); // Remove 'Bearer ' prefix
+    const expectedToken = authToken.value();
+
+    if (token !== expectedToken) {
+      logger.warn('auth_invalid_token', {
+        receivedToken: token.substring(0, 10) + '...',
+        expectedToken: expectedToken.substring(0, 10) + '...'
+      });
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Generate user ID from token for logging
+    const crypto = require('crypto');
+    userId = `user_${crypto.createHash('sha256').update(token).digest('hex').substring(0, 8)}`;
     logger.info('authentication_succeed', { userId, compactionId });
 
     // Step 4: Read compaction document
@@ -86,7 +91,8 @@ exports.cartesiaTTS = onRequest(
       transcript: compactionDoc.compaction_text_human,
       voiceId: compactionDoc.voice_id,
       compactionId,
-      userId
+      userId,
+      apiKey: cartesiaApiKey.value()
     });
 
     // Step 6: Upload to Firebase Storage

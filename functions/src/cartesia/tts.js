@@ -15,9 +15,10 @@ const { logger } = require('../utils/logger');
  * @param {string} params.voiceId - Voice ID for TTS
  * @param {string} params.compactionId - Compaction ID for logging
  * @param {string} params.userId - User ID for logging
+ * @param {string} params.apiKey - Cartesia API key
  * @returns {Promise<Buffer>} - Audio buffer
  */
-async function generateTTS({ transcript, voiceId, compactionId, userId }) {
+async function generateTTS({ transcript, voiceId, compactionId, userId, apiKey }) {
   const requestId = generateRequestId();
   
   logger.info('cartesia_tts_start', {
@@ -33,7 +34,7 @@ async function generateTTS({ transcript, voiceId, compactionId, userId }) {
     const { default: pRetry } = await import('p-retry');
 
     const audioBuffer = await pRetry(
-      () => makeCartesiaRequest(transcript, voiceId, requestId, compactionId, userId),
+      () => makeCartesiaRequest(transcript, voiceId, requestId, compactionId, userId, apiKey),
       {
         retries: 3,
         factor: 2,
@@ -80,9 +81,10 @@ async function generateTTS({ transcript, voiceId, compactionId, userId }) {
  * @param {string} requestId - Request ID for tracking
  * @param {string} compactionId - Compaction ID for logging
  * @param {string} userId - User ID for logging
+ * @param {string} apiKey - Cartesia API key
  * @returns {Promise<Buffer>} - Audio buffer
  */
-async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId, userId) {
+async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId, userId, apiKey) {
   const startTime = Date.now();
   
   try {
@@ -101,12 +103,9 @@ async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId,
       language: 'en'
     };
 
-    // Get API key from environment (correct secret name)
-    const rawApiKey = process.env.cartesia_api_key;
-    const apiKey = rawApiKey ? rawApiKey.trim() : null;
-
+    // API key passed as parameter
     if (!apiKey) {
-      throw new Error('cartesia_api_key environment variable not set');
+      throw new Error('Cartesia API key not provided');
     }
 
     logger.info('cartesia_request_start', {
@@ -132,7 +131,7 @@ async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId,
       url: 'https://api.cartesia.ai/tts/bytes',
       headers: {
         'Cartesia-Version': '2025-04-16',
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${apiKey.trim()}`,
         'Content-Type': 'application/json',
         'User-Agent': 'Firebase-Function/1.0'
       },
