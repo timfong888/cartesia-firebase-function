@@ -69,6 +69,48 @@ describe('Logger Utility', () => {
   });
 });
 
+describe('Firestore Compaction Logging', () => {
+  test('should log update data with field values', () => {
+    // Mock console methods to capture log output
+    const originalConsoleInfo = console.info;
+    const logCalls = [];
+    console.info = jest.fn((message) => {
+      logCalls.push(message);
+    });
+
+    // Mock the logger to test the logging format
+    const testUpdateData = {
+      audio_url: 'https://example.com/audio.mp3',
+      enumStatus: 'completed',
+      status_code: 200
+    };
+
+    // Test the logging format directly
+    logger.info('firestore_update_start', {
+      compactionId: 'test123',
+      updateFields: Object.keys(testUpdateData),
+      updateData: testUpdateData
+    });
+
+    // Verify the log contains both field names and values
+    expect(console.info).toHaveBeenCalledWith(
+      expect.stringContaining('"event":"firestore_update_start"')
+    );
+    expect(console.info).toHaveBeenCalledWith(
+      expect.stringContaining('"compactionId":"test123"')
+    );
+    expect(console.info).toHaveBeenCalledWith(
+      expect.stringContaining('"audio_url":"https://example.com/audio.mp3"')
+    );
+    expect(console.info).toHaveBeenCalledWith(
+      expect.stringContaining('"enumStatus":"completed"')
+    );
+
+    // Restore console
+    console.info = originalConsoleInfo;
+  });
+});
+
 describe('Module Imports', () => {
   test('should import all modules without errors', () => {
     expect(() => require('../auth/validator')).not.toThrow();

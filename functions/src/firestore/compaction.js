@@ -72,31 +72,33 @@ async function getCompactionDoc(compactionId) {
  * @returns {Promise<void>}
  */
 async function updateCompactionDoc(compactionId, updateData) {
+  // Add timestamp to update
+  const updatePayload = {
+    ...updateData,
+    updated_at: new Date().toISOString()
+  };
+
   try {
     logger.info('firestore_update_start', {
       compactionId,
-      updateFields: Object.keys(updateData)
+      updateFields: Object.keys(updatePayload),
+      updateData: updatePayload
     });
-    
+
     const docRef = db.collection('compactions').doc(compactionId);
-    
-    // Add timestamp to update
-    const updatePayload = {
-      ...updateData,
-      updated_at: new Date().toISOString()
-    };
-    
+
     await docRef.update(updatePayload);
-    
+
     logger.info('firestore_update_success', {
       compactionId,
-      updateFields: Object.keys(updateData)
+      updateFields: Object.keys(updatePayload),
+      updateData: updatePayload
     });
-    
+
   } catch (error) {
     logger.error('firestore_update_error', {
       compactionId,
-      updateData,
+      updateData: updatePayload,
       error: error.message,
       stack: error.stack
     });
