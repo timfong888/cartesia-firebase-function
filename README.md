@@ -103,7 +103,7 @@ This function integrates with the [Cartesia TTS Bytes API](https://docs.cartesia
 
 **Required Headers:**
 - `Cartesia-Version: 2025-04-16`
-- `X-API-Key: CARTESIA_API_KEY`
+- `Authorization: Bearer CARTESIA_API_KEY`
 - `Content-Type: application/json`
 
 For complete API documentation, see: https://docs.cartesia.ai/api-reference/tts/bytes

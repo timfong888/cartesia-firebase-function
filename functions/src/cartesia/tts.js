@@ -105,6 +105,8 @@ async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId,
       language: 'en'
     };
 
+    // Debug API key format
+    const apiKey = cartesiaApiKey.value();
     logger.info('cartesia_request_start', {
       compactionId,
       userId,
@@ -114,7 +116,10 @@ async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId,
         textLength: transcript.length,
         voiceId: voiceId,
         outputFormat: requestPayload.output_format
-      }
+      },
+      apiKeyLength: apiKey.length,
+      apiKeyPrefix: apiKey.substring(0, 10),
+      apiKeyHasInvalidChars: /[^\x20-\x7E]/.test(apiKey) // Check for non-printable chars
     });
 
     const response = await axios({
@@ -122,7 +127,7 @@ async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId,
       url: 'https://api.cartesia.ai/tts/bytes',
       headers: {
         'Cartesia-Version': '2025-04-16',
-        'X-API-Key': cartesiaApiKey.value(),
+        'Authorization': `Bearer ${cartesiaApiKey.value()}`,
         'Content-Type': 'application/json',
         'User-Agent': 'Firebase-Function/1.0'
       },
