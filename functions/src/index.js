@@ -39,7 +39,7 @@ exports.cartesiaTTS = onRequest(async (req, res) => {
     }
 
     // Step 2: Extract payload
-    const { compaction_id, authorization } = req.body;
+    const { compaction_id } = req.body;
     compactionId = compaction_id;
 
     if (!compactionId) {
@@ -47,7 +47,8 @@ exports.cartesiaTTS = onRequest(async (req, res) => {
       return res.status(400).json({ error: 'Missing compaction_id' });
     }
 
-    // Step 3: Authenticate request
+    // Step 3: Authenticate request (from Authorization header)
+    const authorization = req.get('Authorization');
     const authResult = await validateAuth(authorization);
     if (!authResult.success) {
       logger.error('authentication_failure', { compactionId });

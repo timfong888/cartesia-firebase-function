@@ -37,10 +37,10 @@ Request → Authentication → Firestore Read → Cartesia TTS → Storage Uploa
 ```bash
 POST https://cartesiatts-rdovs7os4q-uc.a.run.app
 Content-Type: application/json
+Authorization: Bearer cartesia-auth-bearer-token-1234!
 
 {
-  "compaction_id": "your-compaction-document-id",
-  "authorization": "Bearer cartesia-auth-bearer-token-1234!"
+  "compaction_id": "your-compaction-document-id"
 }
 ```
 
