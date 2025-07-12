@@ -28,7 +28,7 @@ setGlobalOptions({
  * Processes TTS requests and updates compaction documents
  */
 exports.cartesiaTTS = onRequest(
-  { secrets: ['AUTH_TOKENS', 'cartesia_api_key'] },
+  { secrets: ['AUTH_TOKEN', 'cartesia_api_key'] },
   async (req, res) => {
   const startTime = Date.now();
   let compactionId, userId;

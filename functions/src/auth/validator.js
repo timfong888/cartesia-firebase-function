@@ -5,11 +5,7 @@
  * Validates against Firebase secret AUTH_TOKENS
  */
 
-const { defineSecret } = require('firebase-functions/params');
 const { logger } = require('../utils/logger');
-
-// Define secret for valid authentication tokens (comma-separated)
-const authTokens = defineSecret('AUTH_TOKENS');
 
 /**
  * Validates authorization header against Firebase secret AUTH_TOKENS
@@ -38,24 +34,26 @@ async function validateAuth(authorization) {
       return { success: false };
     }
 
-    // Validate token against Firebase secret
-    const validTokens = authTokens.value().split(',').map(t => t.trim());
-    const isValidToken = validTokens.includes(token);
+    // Simple hardcoded token check using Firebase secret
+    const expectedToken = process.env.AUTH_TOKEN;
 
-    // Enhanced logging for debugging
+    if (!expectedToken) {
+      logger.error('auth_secret_missing', { message: 'AUTH_TOKEN secret not configured' });
+      return { success: false };
+    }
+
+    const isValidToken = token === expectedToken.trim();
+
     logger.info('auth_token_validation', {
       receivedToken: token.substring(0, 10) + '...',
       receivedTokenLength: token.length,
-      validTokensCount: validTokens.length,
-      validTokensPreview: validTokens.map(t => t.substring(0, 10) + '...'),
+      expectedTokenLength: expectedToken.length,
       isValidToken
     });
 
     if (!isValidToken) {
       logger.warn('auth_invalid_token', {
-        token: token.substring(0, 10) + '...',
-        fullToken: token, // Temporary for debugging
-        validTokens: validTokens // Temporary for debugging
+        token: token.substring(0, 10) + '...'
       });
       return { success: false };
     }
