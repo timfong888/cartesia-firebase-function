@@ -110,11 +110,11 @@ For complete API documentation, see: https://docs.cartesia.ai/api-reference/tts/
 
 ### Authentication
 
-Requests must include a Bearer token that matches one of the tokens configured in the `AUTH_TOKENS` Firebase secret.
+Requests must include a Bearer token that matches the token configured in the `AUTH_TOKEN` Firebase secret.
 
-**Current configured token:** `cartesia-auth-bearer-token-1234!`
+**Required token:** `cartesia-auth-bearer-token-1234!`
 
-Tokens should be in the format `user_{userId}_{randomString}` for proper user ID extraction, but any valid token in the secret will be accepted.
+**Header format:** `Authorization: Bearer cartesia-auth-bearer-token-1234!`
 
 ## 🛠️ Development
 
@@ -142,9 +142,21 @@ Tokens should be in the format `user_{userId}_{randomString}` for proper user ID
    ```bash
    # Set Cartesia API key
    firebase functions:secrets:set cartesia_api_key
+   # When prompted, enter: sk_car_your_cartesia_api_key_here
 
-   # Set authentication tokens (comma-separated)
-   firebase functions:secrets:set AUTH_TOKENS
+   # Set authentication token (single token)
+   firebase functions:secrets:set AUTH_TOKEN
+   # When prompted, enter: cartesia-auth-bearer-token-1234!
+   ```
+
+5. **Verify secrets are set:**
+   ```bash
+   # List all secrets
+   firebase functions:secrets:list
+
+   # Check values (optional)
+   firebase functions:secrets:access cartesia_api_key
+   firebase functions:secrets:access AUTH_TOKEN
    ```
 
 ### Local Development
@@ -184,8 +196,8 @@ npm run deploy
 
 ### Firebase Secrets
 
-- `cartesia_api_key` - Cartesia API key for TTS generation
-- `AUTH_TOKENS` - Comma-separated list of valid bearer tokens (e.g., "user_123_token1,user_456_token2")
+- `cartesia_api_key` - Cartesia API key for TTS generation (e.g., "sk_car_...")
+- `AUTH_TOKEN` - Single authentication token for function access (e.g., "cartesia-auth-bearer-token-1234!")
 
 ### Firebase Services
 
@@ -227,13 +239,18 @@ The function uses structured JSON logging compatible with Firebase Cloud Logging
 
 ### Secret Management
 ```bash
-# Configure authentication tokens
-firebase functions:secrets:set AUTH_TOKENS
-# Enter: user_123_mytoken1,user_456_mytoken2
+# Configure authentication token (single token)
+firebase functions:secrets:set AUTH_TOKEN
+# Enter: cartesia-auth-bearer-token-1234!
 
 # Configure Cartesia API key
 firebase functions:secrets:set cartesia_api_key
 # Enter: sk_car_your_api_key_here
+
+# Verify secrets are configured
+firebase functions:secrets:list
+firebase functions:secrets:access AUTH_TOKEN
+firebase functions:secrets:access cartesia_api_key
 ```
 
 ## 📚 Documentation
@@ -255,9 +272,40 @@ firebase functions:secrets:set cartesia_api_key
 
 This project is licensed under the MIT License.
 
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**401 Unauthorized Error:**
+```bash
+# Check if AUTH_TOKEN secret exists and has correct value
+firebase functions:secrets:list
+firebase functions:secrets:access AUTH_TOKEN
+# Should output: cartesia-auth-bearer-token-1234!
+```
+
+**Function Not Found:**
+```bash
+# Redeploy the function
+firebase deploy --only functions
+```
+
+**Cartesia API Errors:**
+```bash
+# Check if cartesia_api_key is set correctly
+firebase functions:secrets:access cartesia_api_key
+# Should output: sk_car_... (your Cartesia API key)
+```
+
+**Check Function Logs:**
+```bash
+# View recent logs
+firebase functions:log
+```
+
 ## 🆘 Support
 
 For issues and questions:
 - Create an issue in this repository
-- Check the [troubleshooting guide](docs/tasks-1-main.md)
+- Check the troubleshooting guide above
 - Review function logs in Firebase Console
