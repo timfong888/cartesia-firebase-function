@@ -16,11 +16,11 @@ const { logger } = require('../utils/logger');
  * @param {string} params.compactionId - Compaction ID for logging
  * @param {string} params.userId - User ID for logging
  * @param {string} params.apiKey - Cartesia API key
- * @returns {Promise<Buffer>} - Audio buffer
+ * @returns {Promise<{audioBuffer: Buffer, cartesiaRequestId: string}>} - Audio buffer and Cartesia request ID
  */
 async function generateTTS({ transcript, voiceId, compactionId, userId, apiKey }) {
   const requestId = generateRequestId();
-  
+
   logger.info('cartesia_tts_start', {
     compactionId,
     userId,
@@ -33,7 +33,7 @@ async function generateTTS({ transcript, voiceId, compactionId, userId, apiKey }
     // Dynamic import for p-retry ES module
     const { default: pRetry } = await import('p-retry');
 
-    const audioBuffer = await pRetry(
+    const result = await pRetry(
       () => makeCartesiaRequest(transcript, voiceId, requestId, compactionId, userId, apiKey),
       {
         retries: 3,
@@ -57,10 +57,11 @@ async function generateTTS({ transcript, voiceId, compactionId, userId, apiKey }
       compactionId,
       userId,
       requestId,
-      audioSize: audioBuffer.length
+      cartesiaRequestId: result.cartesiaRequestId,
+      audioSize: result.audioBuffer.length
     });
 
-    return audioBuffer;
+    return result;
 
   } catch (error) {
     logger.error('cartesia_tts_failure', {
@@ -82,7 +83,7 @@ async function generateTTS({ transcript, voiceId, compactionId, userId, apiKey }
  * @param {string} compactionId - Compaction ID for logging
  * @param {string} userId - User ID for logging
  * @param {string} apiKey - Cartesia API key
- * @returns {Promise<Buffer>} - Audio buffer
+ * @returns {Promise<{audioBuffer: Buffer, cartesiaRequestId: string}>} - Audio buffer and Cartesia request ID
  */
 async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId, userId, apiKey) {
   const startTime = Date.now();
@@ -119,11 +120,7 @@ async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId,
         outputFormat: requestPayload.output_format
       },
       apiKeyLength: apiKey.length,
-      rawApiKeyLength: rawApiKey.length,
-      apiKeyPrefix: apiKey.substring(0, 10),
-      apiKeyHasInvalidChars: /[^\x20-\x7E]/.test(apiKey),
-      rawApiKeyHasInvalidChars: /[^\x20-\x7E]/.test(rawApiKey),
-      apiKeyCharCodes: Array.from(rawApiKey).slice(0, 20).map(c => c.charCodeAt(0))
+      apiKeyPrefix: apiKey.substring(0, 10)
     });
 
     const response = await axios({
@@ -154,12 +151,20 @@ async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId,
       responseTime
     });
 
+    // Enhanced logging for x-request-id tracing
+    logger.info('cartesia_x_request_id_received', {
+      compactionId,
+      userId,
+      cartesiaRequestId,
+      message: `Cartesia x-request-id: ${cartesiaRequestId}`
+    });
+
     // Validate response
     if (!audioBuffer || audioBuffer.length === 0) {
       throw new Error('Empty audio response from Cartesia API');
     }
 
-    return audioBuffer;
+    return { audioBuffer, cartesiaRequestId };
 
   } catch (error) {
     const responseTime = Date.now() - startTime;
