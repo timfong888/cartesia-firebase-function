@@ -55,8 +55,10 @@ exports.cartesiaTTS = onRequest(
 
     // Step 3: Simple authentication
     const authorization = req.get('Authorization');
+    console.log(`Processing request for compaction: ${compactionId}`);
 
     if (!authorization || !authorization.startsWith('Bearer ')) {
+      console.log('Authentication failed: missing or invalid authorization header');
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
@@ -64,19 +66,24 @@ exports.cartesiaTTS = onRequest(
     const expectedToken = authToken.value();
 
     if (token !== expectedToken) {
+      console.log('Authentication failed: token mismatch');
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // Simple user ID for logging
+    console.log('Authentication successful');
     userId = 'authenticated_user';
 
     // Step 4: Read compaction document
+    console.log(`Reading compaction document: ${compactionId}`);
     const compactionDoc = await getCompactionDoc(compactionId);
     if (!compactionDoc) {
+      console.log(`Compaction document not found: ${compactionId}`);
       return res.status(404).json({ error: 'Compaction document not found' });
     }
+    console.log(`Found compaction document with voice: ${compactionDoc.voice_id}`);
 
     // Step 5: Generate TTS audio
+    console.log(`Generating TTS audio for ${compactionId} (${compactionDoc.compaction_text_human.length} chars)`);
     const audioBuffer = await generateTTS({
       transcript: compactionDoc.compaction_text_human,
       voiceId: compactionDoc.voice_id,
@@ -84,19 +91,24 @@ exports.cartesiaTTS = onRequest(
       userId,
       apiKey: cartesiaApiKey.value()
     });
+    console.log(`TTS audio generated: ${audioBuffer.length} bytes`);
 
     // Step 6: Upload to Firebase Storage
+    console.log(`Uploading audio to storage: ${compactionDoc.video_id}.mp3`);
     const publicUrl = await uploadAudio({
       audioBuffer,
       videoId: compactionDoc.video_id,
       compactionId,
       userId
     });
+    console.log(`Audio uploaded successfully: ${publicUrl}`);
 
     // Step 7: Update compaction document
+    console.log(`Updating compaction document with audio URL`);
     await updateCompactionDoc(compactionId, { audio_url: publicUrl });
 
     // Step 8: Return success response
+    console.log(`Request completed successfully for ${compactionId}`);
     return res.status(200).json({
       success: true,
       audio_url: publicUrl
