@@ -30,8 +30,8 @@ async function validateAuth(authorization) {
       return { success: false };
     }
 
-    // Extract token and trim any extra spaces
-    const token = authorization.substring(7).trim(); // Remove 'Bearer ' prefix and trim spaces
+    // Extract token
+    const token = authorization.substring(7); // Remove 'Bearer ' prefix
 
     if (!token || token.length < 10) {
       logger.warn('auth_invalid_token_length', { tokenLength: token.length });
