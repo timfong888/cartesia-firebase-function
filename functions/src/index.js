@@ -27,7 +27,9 @@ setGlobalOptions({
  * Main Cloud Function handler
  * Processes TTS requests and updates compaction documents
  */
-exports.cartesiaTTS = onRequest(async (req, res) => {
+exports.cartesiaTTS = onRequest(
+  { secrets: ['AUTH_TOKENS', 'CARTESIA_API_KEY'] },
+  async (req, res) => {
   const startTime = Date.now();
   let compactionId, userId;
 
@@ -56,7 +58,9 @@ exports.cartesiaTTS = onRequest(async (req, res) => {
       authorization: authorization ? authorization.substring(0, 20) + '...' : 'null',
       authorizationLength: authorization ? authorization.length : 0,
       allHeaders: Object.keys(req.headers),
-      userAgent: req.get('User-Agent')
+      userAgent: req.get('User-Agent'),
+      method: req.method,
+      timestamp: new Date().toISOString()
     });
 
     const authResult = await validateAuth(authorization);
