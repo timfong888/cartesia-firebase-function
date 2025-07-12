@@ -5,7 +5,11 @@
  * Validates against Firebase secret AUTH_TOKENS
  */
 
+const { defineSecret } = require('firebase-functions/params');
 const { logger } = require('../utils/logger');
+
+// Define secret for authentication token
+const authToken = defineSecret('AUTH_TOKEN');
 
 /**
  * Validates authorization header against Firebase secret AUTH_TOKENS
@@ -35,7 +39,7 @@ async function validateAuth(authorization) {
     }
 
     // Simple hardcoded token check using Firebase secret
-    const expectedToken = process.env.AUTH_TOKEN;
+    const expectedToken = authToken.value();
 
     if (!expectedToken) {
       logger.error('auth_secret_missing', { message: 'AUTH_TOKEN secret not configured' });
