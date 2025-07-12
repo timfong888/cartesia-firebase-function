@@ -22,45 +22,27 @@ const db = getFirestore();
  */
 async function getCompactionDoc(compactionId) {
   try {
-    logger.info('firestore_read_start', { compactionId });
-    
     const docRef = db.collection('compactions').doc(compactionId);
     const docSnap = await docRef.get();
-    
+
     if (!docSnap.exists) {
-      logger.warn('firestore_doc_not_found', { compactionId });
       return null;
     }
-    
+
     const data = docSnap.data();
-    
+
     // Validate required fields
     const requiredFields = ['compaction_text_human', 'voice_id', 'video_id'];
     const missingFields = requiredFields.filter(field => !data[field]);
-    
+
     if (missingFields.length > 0) {
-      logger.error('firestore_missing_required_fields', {
-        compactionId,
-        missingFields
-      });
       throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
     }
-    
-    logger.info('firestore_read_success', {
-      compactionId,
-      hasText: !!data.compaction_text_human,
-      voiceId: data.voice_id,
-      videoId: data.video_id
-    });
-    
+
     return data;
-    
+
   } catch (error) {
-    logger.error('firestore_read_error', {
-      compactionId,
-      error: error.message,
-      stack: error.stack
-    });
+    console.error(`Firestore read error for ${compactionId}:`, error.message);
     throw error;
   }
 }
@@ -73,33 +55,18 @@ async function getCompactionDoc(compactionId) {
  */
 async function updateCompactionDoc(compactionId, updateData) {
   try {
-    logger.info('firestore_update_start', {
-      compactionId,
-      updateFields: Object.keys(updateData)
-    });
-    
     const docRef = db.collection('compactions').doc(compactionId);
-    
+
     // Add timestamp to update
     const updatePayload = {
       ...updateData,
       updated_at: new Date().toISOString()
     };
-    
+
     await docRef.update(updatePayload);
-    
-    logger.info('firestore_update_success', {
-      compactionId,
-      updateFields: Object.keys(updateData)
-    });
-    
+
   } catch (error) {
-    logger.error('firestore_update_error', {
-      compactionId,
-      updateData,
-      error: error.message,
-      stack: error.stack
-    });
+    console.error(`Firestore update error for ${compactionId}:`, error.message);
     throw error;
   }
 }

@@ -24,85 +24,35 @@ if (getApps().length === 0) {
  * @returns {Promise<string>} - Public URL of uploaded file
  */
 async function uploadAudio({ audioBuffer, videoId, compactionId, userId }) {
-  const uploadId = generateUploadId();
   const fileName = `${videoId}.mp3`;
-  
-  logger.info('storage_upload_start', {
-    compactionId,
-    userId,
-    uploadId,
-    fileName,
-    audioSize: audioBuffer.length
-  });
 
   try {
     const bucket = getStorage().bucket();
     const file = bucket.file(fileName);
-    
+
     // Upload options
     const uploadOptions = {
       metadata: {
         contentType: 'audio/mpeg',
-        cacheControl: 'public, max-age=31536000', // 1 year cache
-        metadata: {
-          compactionId: compactionId,
-          userId: userId,
-          uploadId: uploadId,
-          uploadedAt: new Date().toISOString()
-        }
+        cacheControl: 'public, max-age=31536000'
       },
-      resumable: false, // Use simple upload for smaller files
-      validation: 'crc32c' // Enable validation
+      resumable: false,
+      validation: 'crc32c'
     };
 
     // Upload the file
-    const startTime = Date.now();
     await file.save(audioBuffer, uploadOptions);
-    const uploadTime = Date.now() - startTime;
-
-    logger.info('storage_upload_complete', {
-      compactionId,
-      userId,
-      uploadId,
-      fileName,
-      uploadTime,
-      audioSize: audioBuffer.length
-    });
 
     // Make the file publicly accessible
     await file.makePublic();
-    
-    logger.info('storage_make_public_complete', {
-      compactionId,
-      userId,
-      uploadId,
-      fileName
-    });
 
     // Generate public URL
     const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
-    
-    logger.info('storage_upload_success', {
-      compactionId,
-      userId,
-      uploadId,
-      fileName,
-      publicUrl,
-      totalTime: Date.now() - startTime
-    });
 
     return publicUrl;
 
   } catch (error) {
-    logger.error('storage_upload_error', {
-      compactionId,
-      userId,
-      uploadId,
-      fileName,
-      error: error.message,
-      stack: error.stack,
-      audioSize: audioBuffer.length
-    });
+    console.error(`Storage upload failed for ${compactionId}:`, error.message);
 
     // Provide more specific error messages
     if (error.code === 'ENOENT') {
@@ -189,13 +139,7 @@ async function audioExists(videoId) {
   }
 }
 
-/**
- * Generates a unique upload ID for tracking
- * @returns {string} - Unique upload ID
- */
-function generateUploadId() {
-  return `upload_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-}
+
 
 module.exports = {
   uploadAudio,
