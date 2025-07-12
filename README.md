@@ -79,7 +79,7 @@ The compaction document must exist in the `compactions` collection with:
 
 ### Authentication
 
-Requests must include a Bearer token in the authorization field. The function supports multiple token formats and extracts user IDs for logging.
+Requests must include a Bearer token that matches one of the tokens configured in the `AUTH_TOKENS` Firebase secret. Tokens should be in the format `user_{userId}_{randomString}` for proper user ID extraction.
 
 ## 🛠️ Development
 
@@ -103,9 +103,13 @@ Requests must include a Bearer token in the authorization field. The function su
    firebase use sophia-db784
    ```
 
-4. **Set Cartesia API key:**
+4. **Configure Firebase secrets:**
    ```bash
+   # Set Cartesia API key
    firebase functions:secrets:set CARTESIA_API_KEY
+
+   # Set authentication tokens (comma-separated)
+   firebase functions:secrets:set AUTH_TOKENS
    ```
 
 ### Local Development
@@ -143,9 +147,10 @@ npm run deploy
 
 ## 🔧 Configuration
 
-### Environment Variables
+### Firebase Secrets
 
-- `CARTESIA_API_KEY` - Cartesia API key (Firebase secret)
+- `CARTESIA_API_KEY` - Cartesia API key for TTS generation
+- `AUTH_TOKENS` - Comma-separated list of valid bearer tokens (e.g., "user_123_token1,user_456_token2")
 
 ### Firebase Services
 
@@ -173,10 +178,28 @@ The function uses structured JSON logging compatible with Firebase Cloud Logging
 
 ## 🔒 Security
 
-- Bearer token authentication
-- Firebase Storage rules restrict write access
-- API keys stored as Firebase secrets
-- Input validation and sanitization
+### Authentication Tokens
+- All valid bearer tokens are stored in Firebase secret `AUTH_TOKENS`
+- Tokens should follow format: `user_{userId}_{randomString}`
+- Multiple tokens supported (comma-separated in secret)
+- No tokens are committed to the repository
+
+### API Security
+- Cartesia API key stored as Firebase secret `CARTESIA_API_KEY`
+- Firebase Storage rules restrict write access to functions only
+- Input validation and sanitization on all requests
+- Structured logging for security monitoring
+
+### Secret Management
+```bash
+# Configure authentication tokens
+firebase functions:secrets:set AUTH_TOKENS
+# Enter: user_123_mytoken1,user_456_mytoken2
+
+# Configure Cartesia API key
+firebase functions:secrets:set CARTESIA_API_KEY
+# Enter: sk_car_your_api_key_here
+```
 
 ## 📚 Documentation
 

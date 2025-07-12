@@ -1,14 +1,18 @@
 /**
  * Authentication Validator
- * 
+ *
  * Handles bearer token validation for incoming requests
- * Simple token-based authentication as per design requirements
+ * Validates against Firebase secret AUTH_TOKENS
  */
 
+const { defineSecret } = require('firebase-functions/params');
 const { logger } = require('../utils/logger');
 
+// Define secret for valid authentication tokens (comma-separated)
+const authTokens = defineSecret('AUTH_TOKENS');
+
 /**
- * Validates authorization header and extracts user ID
+ * Validates authorization header against Firebase secret AUTH_TOKENS
  * @param {string} authorization - Authorization header value
  * @returns {Promise<{success: boolean, userId?: string}>}
  */
@@ -28,20 +32,24 @@ async function validateAuth(authorization) {
 
     // Extract token
     const token = authorization.substring(7); // Remove 'Bearer ' prefix
-    
+
     if (!token || token.length < 10) {
       logger.warn('auth_invalid_token_length', { tokenLength: token.length });
       return { success: false };
     }
 
-    // Simple validation: check if token looks like a valid format
-    // In a real implementation, this would validate against a database or JWT
-    // For now, we'll accept any token that looks reasonable and extract user ID
-    
-    // Extract user ID from token (simplified approach)
-    // Assuming token format: "user_{userId}_{randomString}" or similar
+    // Validate token against Firebase secret
+    const validTokens = authTokens.value().split(',').map(t => t.trim());
+    const isValidToken = validTokens.includes(token);
+
+    if (!isValidToken) {
+      logger.warn('auth_invalid_token', { token: token.substring(0, 10) + '...' });
+      return { success: false };
+    }
+
+    // Extract user ID from token
     const userId = extractUserIdFromToken(token);
-    
+
     if (!userId) {
       logger.warn('auth_cannot_extract_user_id', { token: token.substring(0, 10) + '...' });
       return { success: false };
@@ -51,7 +59,7 @@ async function validateAuth(authorization) {
     return { success: true, userId };
 
   } catch (error) {
-    logger.error('auth_validation_error', { 
+    logger.error('auth_validation_error', {
       error: error.message,
       authorization: authorization ? authorization.substring(0, 20) + '...' : 'null'
     });
