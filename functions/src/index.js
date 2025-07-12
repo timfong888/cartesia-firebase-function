@@ -49,6 +49,16 @@ exports.cartesiaTTS = onRequest(async (req, res) => {
 
     // Step 3: Authenticate request (from Authorization header)
     const authorization = req.get('Authorization');
+
+    // Enhanced logging for debugging
+    logger.info('request_headers_debug', {
+      compactionId,
+      authorization: authorization ? authorization.substring(0, 20) + '...' : 'null',
+      authorizationLength: authorization ? authorization.length : 0,
+      allHeaders: Object.keys(req.headers),
+      userAgent: req.get('User-Agent')
+    });
+
     const authResult = await validateAuth(authorization);
     if (!authResult.success) {
       logger.error('authentication_failure', { compactionId });

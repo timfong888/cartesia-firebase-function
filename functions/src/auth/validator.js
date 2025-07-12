@@ -42,8 +42,21 @@ async function validateAuth(authorization) {
     const validTokens = authTokens.value().split(',').map(t => t.trim());
     const isValidToken = validTokens.includes(token);
 
+    // Enhanced logging for debugging
+    logger.info('auth_token_validation', {
+      receivedToken: token.substring(0, 10) + '...',
+      receivedTokenLength: token.length,
+      validTokensCount: validTokens.length,
+      validTokensPreview: validTokens.map(t => t.substring(0, 10) + '...'),
+      isValidToken
+    });
+
     if (!isValidToken) {
-      logger.warn('auth_invalid_token', { token: token.substring(0, 10) + '...' });
+      logger.warn('auth_invalid_token', {
+        token: token.substring(0, 10) + '...',
+        fullToken: token, // Temporary for debugging
+        validTokens: validTokens // Temporary for debugging
+      });
       return { success: false };
     }
 
