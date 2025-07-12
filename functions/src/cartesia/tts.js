@@ -6,7 +6,6 @@
  */
 
 const axios = require('axios');
-const pRetry = require('p-retry');
 const { defineSecret } = require('firebase-functions/params');
 const { logger } = require('../utils/logger');
 
@@ -34,6 +33,9 @@ async function generateTTS({ transcript, voiceId, compactionId, userId }) {
   });
 
   try {
+    // Dynamic import for p-retry ES module
+    const { default: pRetry } = await import('p-retry');
+
     const audioBuffer = await pRetry(
       () => makeCartesiaRequest(transcript, voiceId, requestId, compactionId, userId),
       {
