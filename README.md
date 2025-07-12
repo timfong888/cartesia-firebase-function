@@ -4,7 +4,7 @@ A Firebase Cloud Function that integrates with Cartesia's text-to-speech API to 
 
 ## 🚀 Live Function
 
-**Endpoint:** https://us-central1-sophia-db784.cloudfunctions.net/cartesiaTTS
+**Endpoint:** https://cartesiatts-rdovs7os4q-uc.a.run.app
 
 ## 📋 Overview
 
@@ -35,12 +35,12 @@ Request → Authentication → Firestore Read → Cartesia TTS → Storage Uploa
 ### Request
 
 ```bash
-POST https://us-central1-sophia-db784.cloudfunctions.net/cartesiaTTS
+POST https://cartesiatts-rdovs7os4q-uc.a.run.app
 Content-Type: application/json
 
 {
   "compaction_id": "your-compaction-document-id",
-  "authorization": "Bearer your-auth-token"
+  "authorization": "Bearer cartesia-auth-bearer-token-1234!"
 }
 ```
 
@@ -77,9 +77,44 @@ The compaction document must exist in the `compactions` collection with:
 }
 ```
 
+### Cartesia TTS API Integration
+
+This function integrates with the [Cartesia TTS Bytes API](https://docs.cartesia.ai/api-reference/tts/bytes) using the following specification:
+
+**Cartesia API Endpoint:** `POST https://api.cartesia.ai/tts/bytes`
+
+**Request Body sent to Cartesia:**
+```json
+{
+  "model_id": "sonic-2",
+  "transcript": "compactionDoc.compaction_text_human",
+  "voice": {
+    "mode": "id",
+    "id": "compactionDoc.voice_id"
+  },
+  "output_format": {
+    "container": "mp3",
+    "bit_rate": 128000,
+    "sample_rate": 44100
+  },
+  "language": "en"
+}
+```
+
+**Required Headers:**
+- `Cartesia-Version: 2025-04-16`
+- `Authorization: Bearer CARTESIA_API_KEY`
+- `Content-Type: application/json`
+
+For complete API documentation, see: https://docs.cartesia.ai/api-reference/tts/bytes
+
 ### Authentication
 
-Requests must include a Bearer token that matches one of the tokens configured in the `AUTH_TOKENS` Firebase secret. Tokens should be in the format `user_{userId}_{randomString}` for proper user ID extraction.
+Requests must include a Bearer token that matches one of the tokens configured in the `AUTH_TOKENS` Firebase secret.
+
+**Current configured token:** `cartesia-auth-bearer-token-1234!`
+
+Tokens should be in the format `user_{userId}_{randomString}` for proper user ID extraction, but any valid token in the secret will be accepted.
 
 ## 🛠️ Development
 

@@ -119,7 +119,8 @@ async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId,
       method: 'POST',
       url: 'https://api.cartesia.ai/tts/bytes',
       headers: {
-        'X-API-Key': cartesiaApiKey.value(),
+        'Cartesia-Version': '2025-04-16',
+        'Authorization': `Bearer ${cartesiaApiKey.value()}`,
         'Content-Type': 'application/json',
         'User-Agent': 'Firebase-Function/1.0'
       },
