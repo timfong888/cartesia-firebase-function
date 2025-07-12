@@ -56,6 +56,12 @@ exports.cartesiaTTS = onRequest(
     // Step 3: Authenticate request (from Authorization header)
     const authorization = req.get('Authorization');
 
+    logger.info('auth_debug_new_path', {
+      compactionId,
+      authorization: authorization ? authorization.substring(0, 20) + '...' : 'null',
+      authorizationLength: authorization ? authorization.length : 0
+    });
+
     if (!authorization || !authorization.startsWith('Bearer ')) {
       logger.warn('auth_missing_or_invalid_format', { authorization: authorization ? authorization.substring(0, 20) + '...' : 'null' });
       return res.status(401).json({ error: 'Unauthorized' });
@@ -64,10 +70,21 @@ exports.cartesiaTTS = onRequest(
     const token = authorization.substring(7); // Remove 'Bearer ' prefix
     const expectedToken = authToken.value();
 
+    logger.info('auth_token_comparison', {
+      compactionId,
+      receivedToken: token.substring(0, 10) + '...',
+      receivedTokenLength: token.length,
+      expectedToken: expectedToken.substring(0, 10) + '...',
+      expectedTokenLength: expectedToken.length,
+      tokensMatch: token === expectedToken
+    });
+
     if (token !== expectedToken) {
-      logger.warn('auth_invalid_token', {
+      logger.warn('auth_invalid_token_new', {
         receivedToken: token.substring(0, 10) + '...',
-        expectedToken: expectedToken.substring(0, 10) + '...'
+        expectedToken: expectedToken.substring(0, 10) + '...',
+        receivedFull: token,
+        expectedFull: expectedToken
       });
       return res.status(401).json({ error: 'Unauthorized' });
     }
