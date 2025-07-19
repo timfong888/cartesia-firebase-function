@@ -120,19 +120,19 @@ exports.cartesiaTTS = onRequest(
       userId
     });
 
-    // Step 7: Update compaction document with audio URL and Cartesia request ID
+    // Step 7: Update compaction document with audio URL and TTS job ID
     await updateCompactionDoc(compactionId, {
       audio_url: publicUrl,
-      cartesia_request_id: cartesiaRequestId,
+      tts_job_id: cartesiaRequestId,
       enumStatus: 'completed'
     });
 
-    // Log the stored Cartesia request ID for tracing
-    logger.info('cartesia_request_id_stored', {
+    // Log the stored TTS job ID for tracing
+    logger.info('tts_job_id_stored', {
       compactionId,
       userId,
       cartesiaRequestId,
-      message: `Stored Cartesia x-request-id ${cartesiaRequestId} in Firestore for compaction ${compactionId}`
+      message: `Stored TTS job ID ${cartesiaRequestId} in Firestore for compaction ${compactionId}`
     });
 
     // Step 8: Return success response
