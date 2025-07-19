@@ -124,15 +124,15 @@ exports.cartesiaTTS = onRequest(
     await updateCompactionDoc(compactionId, {
       audio_url: publicUrl,
       tts_job_id: cartesiaRequestId,
-      enumStatus: 'completed'
+      statusEnum: 'compactionDone'
     });
 
-    // Log the stored TTS job ID for tracing
-    logger.info('tts_job_id_stored', {
+    // Log the stored Cartesia request ID for tracing
+    logger.info('cartesia_request_id_stored', {
       compactionId,
       userId,
       cartesiaRequestId,
-      message: `Stored TTS job ID ${cartesiaRequestId} in Firestore for compaction ${compactionId}`
+      message: `Stored Cartesia x-request-id ${cartesiaRequestId} in Firestore for compaction ${compactionId}`
     });
 
     // Step 8: Return success response
