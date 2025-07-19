@@ -104,7 +104,7 @@ exports.cartesiaTTS = onRequest(
     logger.info('read_compaction_doc_succeed', { userId, compactionId });
 
     // Step 5: Generate TTS audio
-    const audioBuffer = await generateTTS({
+    const { audioBuffer, cartesiaRequestId } = await generateTTS({
       transcript: compactionDoc.compaction_text_human,
       voiceId: compactionDoc.voice_id,
       compactionId,
@@ -120,8 +120,20 @@ exports.cartesiaTTS = onRequest(
       userId
     });
 
-    // Step 7: Update compaction document
-    await updateCompactionDoc(compactionId, { audio_url: publicUrl });
+    // Step 7: Update compaction document with audio URL and TTS job ID
+    await updateCompactionDoc(compactionId, {
+      audio_url: publicUrl,
+      tts_job_id: cartesiaRequestId,
+      statusEnum: 'compactionDone'
+    });
+
+    // Log the stored Cartesia request ID for tracing
+    logger.info('cartesia_request_id_stored', {
+      compactionId,
+      userId,
+      cartesiaRequestId,
+      message: `Stored Cartesia x-request-id ${cartesiaRequestId} in Firestore for compaction ${compactionId}`
+    });
 
     // Step 8: Return success response
     const processingTime = Date.now() - startTime;
@@ -129,12 +141,14 @@ exports.cartesiaTTS = onRequest(
       userId,
       compactionId,
       publicUrl,
+      cartesiaRequestId,
       processingTime
     });
 
     return res.status(200).json({
       success: true,
       audio_url: publicUrl,
+      cartesia_request_id: cartesiaRequestId,
       processing_time_ms: processingTime
     });
 
