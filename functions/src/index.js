@@ -104,7 +104,7 @@ exports.cartesiaTTS = onRequest(
     logger.info('read_compaction_doc_succeed', { userId, compactionId });
 
     // Step 5: Generate TTS audio
-    const { audioBuffer, cartesiaRequestId } = await generateTTS({
+    const { audioBuffer, cartesiaRequestId, duration } = await generateTTS({
       transcript: compactionDoc.compaction_text_human,
       voiceId: compactionDoc.voice_id,
       compactionId,
@@ -120,10 +120,11 @@ exports.cartesiaTTS = onRequest(
       userId
     });
 
-    // Step 7: Update compaction document with audio URL and TTS job ID
+    // Step 7: Update compaction document with audio URL, TTS job ID, and duration
     await updateCompactionDoc(compactionId, {
       audio_url: publicUrl,
       tts_job_id: cartesiaRequestId,
+      compaction_audio_duration: duration,
       statusEnum: 'compactionDone'
     });
 
@@ -142,6 +143,7 @@ exports.cartesiaTTS = onRequest(
       compactionId,
       publicUrl,
       cartesiaRequestId,
+      compactionAudioDuration: duration,
       processingTime
     });
 
@@ -149,6 +151,7 @@ exports.cartesiaTTS = onRequest(
       success: true,
       audio_url: publicUrl,
       cartesia_request_id: cartesiaRequestId,
+      compaction_audio_duration: duration,
       processing_time_ms: processingTime
     });
 

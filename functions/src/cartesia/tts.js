@@ -6,6 +6,7 @@
  */
 
 const axios = require('axios');
+const getMP3Duration = require('get-mp3-duration');
 const { logger } = require('../utils/logger');
 
 /**
@@ -16,7 +17,7 @@ const { logger } = require('../utils/logger');
  * @param {string} params.compactionId - Compaction ID for logging
  * @param {string} params.userId - User ID for logging
  * @param {string} params.apiKey - Cartesia API key
- * @returns {Promise<{audioBuffer: Buffer, cartesiaRequestId: string}>} - Audio buffer and Cartesia request ID
+ * @returns {Promise<{audioBuffer: Buffer, cartesiaRequestId: string, duration: number}>} - Audio buffer, Cartesia request ID, and duration in seconds
  */
 async function generateTTS({ transcript, voiceId, compactionId, userId, apiKey }) {
   const requestId = generateRequestId();
@@ -83,7 +84,7 @@ async function generateTTS({ transcript, voiceId, compactionId, userId, apiKey }
  * @param {string} compactionId - Compaction ID for logging
  * @param {string} userId - User ID for logging
  * @param {string} apiKey - Cartesia API key
- * @returns {Promise<{audioBuffer: Buffer, cartesiaRequestId: string}>} - Audio buffer and Cartesia request ID
+ * @returns {Promise<{audioBuffer: Buffer, cartesiaRequestId: string, duration: number}>} - Audio buffer, Cartesia request ID, and duration in seconds
  */
 async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId, userId, apiKey) {
   const startTime = Date.now();
@@ -141,6 +142,10 @@ async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId,
     const cartesiaRequestId = response.headers['x-request-id'];
     const audioBuffer = Buffer.from(response.data);
 
+    // Calculate audio duration
+    const durationMs = getMP3Duration(audioBuffer);
+    const duration = durationMs / 1000; // Convert to seconds
+
     logger.info('cartesia_request_success', {
       compactionId,
       userId,
@@ -148,6 +153,7 @@ async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId,
       cartesiaRequestId,
       statusCode: response.status,
       audioSize: audioBuffer.length,
+      duration,
       responseTime
     });
 
@@ -164,7 +170,7 @@ async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId,
       throw new Error('Empty audio response from Cartesia API');
     }
 
-    return { audioBuffer, cartesiaRequestId };
+    return { audioBuffer, cartesiaRequestId, duration };
 
   } catch (error) {
     const responseTime = Date.now() - startTime;
