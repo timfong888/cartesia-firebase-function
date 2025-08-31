@@ -11,7 +11,7 @@ const { defineSecret } = require('firebase-functions/params');
 
 // Import modules
 const { getCompactionDoc, updateCompactionDoc } = require('./firestore/compaction');
-const { generateTTS } = require('./cartesia/tts');
+const { initiateTTS, bufferTTSStream } = require('./cartesia/tts');
 const { uploadAudio } = require('./storage/uploader');
 const { logger } = require('./utils/logger');
 
@@ -103,8 +103,8 @@ exports.cartesiaTTS = onRequest(
     
     logger.info('read_compaction_doc_succeed', { userId, compactionId });
 
-    // Step 5: Generate TTS audio
-    const { audioBuffer, cartesiaRequestId } = await generateTTS({
+    // Step 5: Initiate TTS generation (immediate response)
+    const { audioStream, cartesiaRequestId } = await initiateTTS({
       transcript: compactionDoc.compaction_text_human,
       voiceId: compactionDoc.voice_id,
       compactionId,
@@ -112,19 +112,10 @@ exports.cartesiaTTS = onRequest(
       apiKey: cartesiaApiKey.value()
     });
 
-    // Step 6: Upload to Firebase Storage
-    const publicUrl = await uploadAudio({
-      audioBuffer,
-      videoId: compactionDoc.video_id,
-      compactionId,
-      userId
-    });
-
-    // Step 7: Update compaction document with audio URL and TTS job ID
+    // Step 6: Update compaction document with tts_job_id immediately
     await updateCompactionDoc(compactionId, {
-      audio_url: publicUrl,
       tts_job_id: cartesiaRequestId,
-      statusEnum: 'compactionDone'
+      statusEnum: 'ttsProcessing'
     });
 
     // Log the stored Cartesia request ID for tracing
@@ -135,22 +126,35 @@ exports.cartesiaTTS = onRequest(
       message: `Stored Cartesia x-request-id ${cartesiaRequestId} in Firestore for compaction ${compactionId}`
     });
 
-    // Step 8: Return success response
+    // Step 7: Return immediate response to Pipedream
     const processingTime = Date.now() - startTime;
-    logger.info('tts_processing_complete', {
+    logger.info('immediate_response_sent', {
       userId,
       compactionId,
-      publicUrl,
       cartesiaRequestId,
       processingTime
     });
 
-    return res.status(200).json({
+    // RETURN IMMEDIATELY (< 200ms)
+    res.status(200).json({
       success: true,
-      audio_url: publicUrl,
-      cartesia_request_id: cartesiaRequestId,
+      compaction_id: compactionId,
+      tts_job_id: cartesiaRequestId,
+      status: 'processing',
       processing_time_ms: processingTime
     });
+
+    // Step 8: Continue async processing (fire and forget)
+    processAudioAsync(audioStream, compactionDoc, compactionId, userId, cartesiaRequestId)
+      .catch(error => {
+        logger.error('async_processing_error', {
+          compactionId,
+          userId,
+          cartesiaRequestId,
+          error: error.message,
+          stack: error.stack
+        });
+      });
 
   } catch (error) {
     const processingTime = Date.now() - startTime;
@@ -185,3 +189,83 @@ exports.cartesiaTTS = onRequest(
     });
   }
 });
+
+/**
+ * Processes audio stream asynchronously after immediate response
+ * @param {Stream} audioStream - Audio stream from Cartesia
+ * @param {Object} compactionDoc - Compaction document data
+ * @param {string} compactionId - Compaction ID
+ * @param {string} userId - User ID
+ * @param {string} cartesiaRequestId - Cartesia request ID
+ */
+async function processAudioAsync(audioStream, compactionDoc, compactionId, userId, cartesiaRequestId) {
+  const asyncStartTime = Date.now();
+  
+  try {
+    logger.info('async_processing_start', {
+      compactionId,
+      userId,
+      cartesiaRequestId
+    });
+
+    // Step 1: Buffer the audio stream
+    const audioBuffer = await bufferTTSStream(audioStream, compactionId, userId, cartesiaRequestId);
+
+    logger.info('cartesia_tts_success', {
+      compactionId,
+      userId,
+      cartesiaRequestId,
+      audioSize: audioBuffer.length
+    });
+
+    // Step 2: Upload to Firebase Storage
+    const publicUrl = await uploadAudio({
+      audioBuffer,
+      videoId: compactionDoc.video_id,
+      compactionId,
+      userId
+    });
+
+    // Step 3: Update compaction document with final results
+    await updateCompactionDoc(compactionId, {
+      audio_url: publicUrl,
+      statusEnum: 'compactionDone'
+    });
+
+    const asyncProcessingTime = Date.now() - asyncStartTime;
+    logger.info('tts_processing_complete', {
+      userId,
+      compactionId,
+      publicUrl,
+      cartesiaRequestId,
+      processingTime: asyncProcessingTime
+    });
+
+  } catch (error) {
+    const asyncProcessingTime = Date.now() - asyncStartTime;
+    
+    logger.error('async_tts_processing_error', {
+      userId,
+      compactionId,
+      cartesiaRequestId,
+      error: error.message,
+      stack: error.stack,
+      processingTime: asyncProcessingTime
+    });
+
+    // Update compaction document with error status
+    try {
+      await updateCompactionDoc(compactionId, {
+        statusEnum: 'failed',
+        error: error.message
+      });
+    } catch (updateError) {
+      logger.error('async_error_update_failure', {
+        compactionId,
+        userId,
+        cartesiaRequestId,
+        updateError: updateError.message
+      });
+    }
+  }
+}

@@ -9,16 +9,16 @@ const axios = require('axios');
 const { logger } = require('../utils/logger');
 
 /**
- * Generates TTS audio using Cartesia API
+ * Initiates TTS generation and returns stream + x-request-id immediately
  * @param {Object} params - TTS parameters
  * @param {string} params.transcript - Text to convert to speech
  * @param {string} params.voiceId - Voice ID for TTS
  * @param {string} params.compactionId - Compaction ID for logging
  * @param {string} params.userId - User ID for logging
  * @param {string} params.apiKey - Cartesia API key
- * @returns {Promise<{audioBuffer: Buffer, cartesiaRequestId: string}>} - Audio buffer and Cartesia request ID
+ * @returns {Promise<{audioStream: Stream, cartesiaRequestId: string}>} - Audio stream and Cartesia request ID
  */
-async function generateTTS({ transcript, voiceId, compactionId, userId, apiKey }) {
+async function initiateTTS({ transcript, voiceId, compactionId, userId, apiKey }) {
   const requestId = generateRequestId();
 
   logger.info('cartesia_tts_start', {
@@ -34,7 +34,7 @@ async function generateTTS({ transcript, voiceId, compactionId, userId, apiKey }
     const { default: pRetry } = await import('p-retry');
 
     const result = await pRetry(
-      () => makeCartesiaRequest(transcript, voiceId, requestId, compactionId, userId, apiKey),
+      () => initiateCartesiaRequest(transcript, voiceId, requestId, compactionId, userId, apiKey),
       {
         retries: 3,
         factor: 2,
@@ -53,12 +53,11 @@ async function generateTTS({ transcript, voiceId, compactionId, userId, apiKey }
       }
     );
 
-    logger.info('cartesia_tts_success', {
+    logger.info('cartesia_tts_initiated', {
       compactionId,
       userId,
       requestId,
-      cartesiaRequestId: result.cartesiaRequestId,
-      audioSize: result.audioBuffer.length
+      cartesiaRequestId: result.cartesiaRequestId
     });
 
     return result;
@@ -76,16 +75,16 @@ async function generateTTS({ transcript, voiceId, compactionId, userId, apiKey }
 }
 
 /**
- * Makes the actual request to Cartesia API
+ * Initiates streaming request to Cartesia API and returns stream + x-request-id immediately
  * @param {string} transcript - Text to convert
  * @param {string} voiceId - Voice ID
  * @param {string} requestId - Request ID for tracking
  * @param {string} compactionId - Compaction ID for logging
  * @param {string} userId - User ID for logging
  * @param {string} apiKey - Cartesia API key
- * @returns {Promise<{audioBuffer: Buffer, cartesiaRequestId: string}>} - Audio buffer and Cartesia request ID
+ * @returns {Promise<{audioStream: Stream, cartesiaRequestId: string}>} - Audio stream and Cartesia request ID
  */
-async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId, userId, apiKey) {
+async function initiateCartesiaRequest(transcript, voiceId, requestId, compactionId, userId, apiKey) {
   const startTime = Date.now();
   
   try {
@@ -133,21 +132,20 @@ async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId,
         'User-Agent': 'Firebase-Function/1.0'
       },
       data: requestPayload,
-      responseType: 'arraybuffer',
+      responseType: 'stream',
       timeout: 30000 // 30 second timeout
     });
 
     const responseTime = Date.now() - startTime;
     const cartesiaRequestId = response.headers['x-request-id'];
-    const audioBuffer = Buffer.from(response.data);
+    const audioStream = response.data;
 
-    logger.info('cartesia_request_success', {
+    logger.info('cartesia_request_initiated', {
       compactionId,
       userId,
       requestId,
       cartesiaRequestId,
       statusCode: response.status,
-      audioSize: audioBuffer.length,
       responseTime
     });
 
@@ -159,12 +157,12 @@ async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId,
       message: `Cartesia x-request-id: ${cartesiaRequestId}`
     });
 
-    // Validate response
-    if (!audioBuffer || audioBuffer.length === 0) {
-      throw new Error('Empty audio response from Cartesia API');
+    // Validate response stream
+    if (!audioStream) {
+      throw new Error('No audio stream response from Cartesia API');
     }
 
-    return { audioBuffer, cartesiaRequestId };
+    return { audioStream, cartesiaRequestId };
 
   } catch (error) {
     const responseTime = Date.now() - startTime;
@@ -221,6 +219,76 @@ async function makeCartesiaRequest(transcript, voiceId, requestId, compactionId,
 }
 
 /**
+ * Buffers a stream into a Buffer asynchronously
+ * @param {Stream} audioStream - Audio stream to buffer
+ * @param {string} compactionId - Compaction ID for logging
+ * @param {string} userId - User ID for logging
+ * @param {string} cartesiaRequestId - Cartesia request ID for logging
+ * @returns {Promise<Buffer>} - Buffered audio data
+ */
+async function bufferTTSStream(audioStream, compactionId, userId, cartesiaRequestId) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let totalSize = 0;
+
+    audioStream.on('data', (chunk) => {
+      chunks.push(chunk);
+      totalSize += chunk.length;
+    });
+
+    audioStream.on('end', () => {
+      const audioBuffer = Buffer.concat(chunks);
+      
+      logger.info('cartesia_stream_buffered', {
+        compactionId,
+        userId,
+        cartesiaRequestId,
+        audioSize: audioBuffer.length
+      });
+
+      resolve(audioBuffer);
+    });
+
+    audioStream.on('error', (error) => {
+      logger.error('cartesia_stream_error', {
+        compactionId,
+        userId,
+        cartesiaRequestId,
+        error: error.message
+      });
+      reject(error);
+    });
+  });
+}
+
+/**
+ * Legacy function for backward compatibility - generates TTS audio using Cartesia API
+ * @param {Object} params - TTS parameters
+ * @param {string} params.transcript - Text to convert to speech
+ * @param {string} params.voiceId - Voice ID for TTS
+ * @param {string} params.compactionId - Compaction ID for logging
+ * @param {string} params.userId - User ID for logging
+ * @param {string} params.apiKey - Cartesia API key
+ * @returns {Promise<{audioBuffer: Buffer, cartesiaRequestId: string}>} - Audio buffer and Cartesia request ID
+ */
+async function generateTTS({ transcript, voiceId, compactionId, userId, apiKey }) {
+  const { audioStream, cartesiaRequestId } = await initiateTTS({
+    transcript, voiceId, compactionId, userId, apiKey
+  });
+  
+  const audioBuffer = await bufferTTSStream(audioStream, compactionId, userId, cartesiaRequestId);
+  
+  logger.info('cartesia_tts_success', {
+    compactionId,
+    userId,
+    cartesiaRequestId,
+    audioSize: audioBuffer.length
+  });
+  
+  return { audioBuffer, cartesiaRequestId };
+}
+
+/**
  * Generates a unique request ID for tracking
  * @returns {string} - Unique request ID
  */
@@ -229,5 +297,7 @@ function generateRequestId() {
 }
 
 module.exports = {
+  initiateTTS,
+  bufferTTSStream,
   generateTTS
 };
