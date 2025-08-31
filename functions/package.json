@@ -9,9 +9,11 @@
     "shell": "firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
+    "deploy:tracked": "node scripts/deploy-with-tracking.js",
     "logs": "firebase functions:log",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "test:immediate": "node ../test-immediate-response.js"
   },
   "engines": {
     "node": "22"
